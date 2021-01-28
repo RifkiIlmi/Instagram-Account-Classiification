@@ -4,4 +4,4 @@
 #### Instructions
 1. Makemigrations
 2. Migrate the database
-3. Login admin and importt data_new
+3. Login admin and import data_new
