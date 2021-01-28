@@ -1,0 +1,384 @@
+{% extends '../main/base.html' %} {% block content%}
+
+<h3>Klasifikasi (Naive Bayes Classifier)</h3>
+<br />
+
+{% for msg in messages %}
+<div class="alert alert-{{msg.level_tag}}" role="alert">
+    {{msg.message}}
+</div>
+{% endfor %}
+
+<!-- klasifikasi data  -->
+<form action="{% url 'analyze' %}" method="post">
+    {% csrf_token %}
+    <div class="form-row text-left">
+        <div class="form-group col-md-12">
+            <label for="ratio">Pilih Rasio Data</label>
+            {{ form.ratio }}
+        </div>
+        <div class="form-group col-md-12">
+            <label for="ratio">Pilih N-Gram</label>
+            {{ form.ngram }}
+        </div>
+        <!-- tampilan treshold -->
+        
+        <!-- <div class="form-group col-md-12">
+            <label for="treshold">Treshold</label>
+            {{ form.treshold }}
+        </div> -->
+
+        <div class="form-group col-md-2">
+            <button class="btn btn-outline-primary form-control" type="submit">Klasifikasi</button>
+        </div>
+    </div>
+</form>
+<hr />
+
+<!-- ANIMASI Proses Loading  -->
+<div class="loading" style="display: none;">
+    <h3>Please Wait ... </h3>
+    <img src="{{ MEDIA_URL }}/static/images/loading.gif" alt="loading">
+</div>
+
+<!-- Tabel Hasil Klasifikasi -->
+<div class="container mt-5">
+    <table class="table table-striped table-bordered" style="width:100%">
+        <thead class="text-center">
+            <tr>
+                <th>Jumlah Data Seluruhnya</th>
+                <th>Jumlah Data Training</th>
+                <th>Jumlah Data Testing</th>
+                <th>Akurasi (%)</th>
+                <th>Jumlah Terklasifikasi Benar</th>
+                <th>Jumlah Terklasifikasi Salah</th>
+            </tr>
+        </thead>
+        <tbody id="summary1" class="text-justify">
+            
+        </tbody>
+    </table>
+</div>
+
+<hr />
+
+<!-- Tabel Confusion Matrix  -->
+<div class="container mt-5">
+    <h4>CONFUSION MATRIX :</h4>
+    <table class="table table-striped table-bordered" style="width:100%">
+        <thead class="text-center">
+            <tr>
+                <th></th>
+                <th>Elektronik</th>
+                <th>Pakaian</th>
+                <th>Kosmetik</th>
+            </tr>
+        </thead>
+        <tbody class="text-justify">
+            <tr id="elektronik">
+                <td>Elektronik</td>
+                
+            </tr>
+            <tr id="pakaian">
+                <td>Pakaian</td>
+                
+            </tr>
+            <tr id="kosmetik">
+                <td>Kosmetik</td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<hr />
+<!-- Tabel Confusion Matrix  -->
+<div class="container mt-5">
+    <h4>Precison & Recall :</h4>
+    <table class="table table-striped table-bordered" style="width:100%">
+        <thead class="text-center">
+            <tr>
+                <th></th>
+                <th>Precison (%)</th>
+                <th>Recall (%)</th>
+            </tr>
+        </thead>
+        <tbody id="precall"  class="text-justify">
+        </tbody>
+    </table>
+</div>
+
+<hr />
+<!-- Tabel  -->
+<div class="container mt-5">
+    <h4>Hasil Akhir :</h4>
+    <div class="form-group">
+        <button id="summ" data-toggle="modal" data-target="#summary" class="btn btn-outline-info">Summary</button>
+    </div>
+    <table id="result" class="table table-striped dt-responsive table-bordered" style="width:100%">
+        <thead class="text-center">
+            <tr>
+                <th>Username</th>
+                <th>Label / Kategori Asli</th>
+                <th>Label / Kategori Model</th>
+                <th>Caption</th>
+            </tr>
+        </thead>
+        <tbody id="hasilNBC">
+            
+        </tbody>
+
+    </table>
+</div>
+
+<div class="modal fade" id="summary" tabindex="-1" role="dialog" aria-labelledby="summaryTitle"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="summaryHeaderTitle">Summary - Data Akun Instagram</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div id="stat-content" class="modal-body">
+                <table class="table table-striped table-bordered dt-responsive nowrap" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Username</th>
+                            <th>Elektronik</th>
+                            <th>Kosmetik</th>
+                            <th>Pakaian</th>
+                            <th>Persentase</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryData">
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content%}
+
+
+{% block javascript %} 
+
+<script type="text/javascript">
+    $(function () {
+        $("form").submit(function () {
+            $('.loading').show()
+            const ratio =  $('#ratio').val()
+            const ngram =  $('#ngram').val()
+            const treshold =  $('#treshold').val()
+            $.ajax({
+                type: $(this).attr("method"),
+                url: $(this).attr("action"),
+                data:{
+                    ratio : ratio,
+                    ngram : ngram,
+                    treshold : treshold,
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    dataType: "json",
+                },
+                success: function (response) {
+                    $('.loading').hide()
+
+                    let cmE = response.cmElek
+                    let cmP = response.cmPakai
+                    let cmK = response.cmKosm
+                    let precision = response.precision
+                    let recall = response.recall
+                    let dataKlasifikasi = response.hasilAkhir
+
+                    // console.log(response.hasilAkhir)
+                     
+                    const elektronik = () => {
+                        let html = ''
+                        cmE.forEach(item => {
+                            html += `
+                                <td>${item}</td>
+                            `
+                        });
+                        return html
+                    }
+
+                    const pakaian = () => {
+                        let html = ''
+                        cmP.forEach(item => {
+                            html += `
+                                <td>${item}</td>
+                            `
+                        });
+                        return html
+                    }
+
+                    const kosmetik = () => {
+                        let html = ''
+                        cmK.forEach(item => {
+                            html += `
+                                <td>${item}</td>
+                            `
+                        });
+                        return html
+                    }
+
+                    const klasifikasi = () => {
+                        let html = ''
+                        dataKlasifikasi.forEach(item => {
+                            html += `
+                                <tr>
+                                    <td>${item[3]}</td>
+                                    <td>${item[4]}</td>
+                                    <td bgcolor="${item[4]==item[5]?'#a9fc9a':'#ffabb2'}" >${item[5]}</td>
+                                    <td><pre>${item[2]}</pre></td>
+                                </tr>
+                            `
+                        });
+                        return html
+                    }
+
+                    $('#summary1').html(
+                        `
+                        <tr class="text-center">
+                            <td>${response.totalData}</td>
+                            <td>${response.totalTrain}</td>
+                            <td>${response.totalTest}</td>
+                            <td>${response.akurasi.toFixed(2)}<b> %</b></td>
+                            <td>${response.terklasifikasi}</td>
+                            <td>${response.salahKelas}</td>
+                        </tr>
+                        `
+                    )
+                    $('#elektronik').append(
+                        elektronik()
+                    )
+                    $('#pakaian').append(
+                        pakaian()
+                    )
+                    $('#kosmetik').append(
+                        kosmetik()
+                    )
+                    $('#precall').html(
+                        `
+                        <tr>
+                            <td>Elektronik</td>
+                            <td>${(response.precision[0]*100).toFixed(2)}</td>
+                            <td>${(response.recall[0]*100).toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>Pakaian</td>
+                            <td>${(response.precision[1]*100).toFixed(2)}</td>
+                            <td>${(response.recall[1]*100).toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>Kosmetik</td>
+                            <td>${(response.precision[2]*100).toFixed(2)}</td>
+                            <td>${(response.recall[2]*100).toFixed(2)}</td>
+                        </tr>
+                        `
+                    )
+                    $('#hasilNBC').html(
+                        klasifikasi()
+                    )
+                   
+                    $('#result').DataTable({
+                        "language": {
+                            "emptyTable": "<i>No Data</i>"
+                        },
+                    })
+                }
+            })
+            return false;
+        });
+    });
+</script>
+
+<script>
+    $('#summ').click(function () {
+        $('#summaryData').html('')
+        $.ajax({
+            type: 'GET',
+            url: "{% url 'summary' %}",
+            success: function (response) {
+                if (response.data.status == 1) {
+                    
+                    label = response.data.label
+                    username = response.data.username
+                    
+                    console.log(label)
+
+                    username.forEach( (item,i) => {
+                        len = label[item[0]].length
+                        elekt = 0
+                        kosme = 0
+                        pakai = 0
+
+                        if(len == 1){
+                            if(label[item[0]][0][0] == "Elektronik"){
+                                elekt = label[item[0]][0][1]
+                            }else if(label[item[0]][0][0] == "Kosmetik"){
+                                kosme = label[item[0]][0][1]
+                            }else if(label[item[0]][0][0] == "Pakaian"){
+                                pakai = label[item[0]][0][1]
+                            }
+                        }else if(len == 2){
+                            if(label[item[0]][0][0] == "Elektronik"){
+                                elekt = label[item[0]][0][1]
+                                if(label[item[0]][1][0] == "Kosmetik"){
+                                    kosme = label[item[0]][1][1]
+                                }else if(label[item[0]][0][0] == "Pakaian"){
+                                    pakai = label[item[0]][1][1]
+                                }
+                            }else if(label[item[0]][0][0] == "Kosmetik"){
+                                kosme = label[item[0]][0][1]
+                                if(label[item[0]][1][0] == "Pakaian"){
+                                    pakai = label[item[0]][1][1]
+                                }
+                            }
+                        }else if(len == 3){
+                            elekt = label[item[0]][0][1]
+                            kosme = label[item[0]][1][1]
+                            pakai = label[item[0]][2][1]
+                        }
+
+                        percentelekt = (elekt/(elekt+kosme+pakai))*100
+                        percentkosme = (kosme/(elekt+kosme+pakai))*100
+                        percentpakai= (pakai/(elekt+kosme+pakai))*100
+
+                        $('#summaryData').append(`
+                        <tr>
+                            <td>${i+1}</td>
+                            <td>${item[0]} <a target="_blank" href="https://www.instagram.com/${item[0]}/"><small>Show</small></a> </td>
+                            <td>${elekt}</td>
+                            <td>${kosme}</td>
+                            <td>${pakai}</td>
+                            <td>
+                                <p><b>Elektronik</b> : ${percentelekt.toFixed(1)}%</p>
+                                <p><b>Kosmetik</b> : ${percentkosme.toFixed(1)}%</p>
+                                <p><b>Pakaian</b> : ${percentpakai.toFixed(1)}%</p>
+                            </td>
+                        </tr>
+                        `)
+                    })
+                
+                    
+                } else if (response.data.status == 0) {
+                    console.log(response.data)
+                    $('#stat-content').html(
+                        `<p class="text-danger text-center">${response.data.message}</p>`)
+                } else {
+                    console.log(response.data)
+                }
+            },
+        })
+    })
+</script>
+
+
+{% endblock javascript%}

@@ -1,0 +1,100 @@
+{% extends '../main/base.html' %} {% block content%}
+
+{% for msg in messages %}
+<div class="alert alert-{{msg.level_tag}}" role="alert">
+    {{msg.message}}
+</div>
+{% endfor %}
+
+<h4>Pembobotan Kata ( Tf-IDf / Unigram)</h4>
+<br />
+
+
+<a class="btn btn-primary" href="{% url 'bobot' %}">Run</a>
+
+<hr />
+
+<table id="bobot" class="table table-striped table-bordered dt-responsive" style="width:100%">
+    <thead>
+        <tr>
+            <th>No.</th>
+            <th>Kata</th>
+            <th>TF</th>
+            <th>IDF</th>
+            <th>TF-IDF</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ item.kata }}</td>
+            <td>{{ item.tf }}</td>
+            <td>{{ item.idf }}</td>
+            <td>{% multiply item.tf item.idf %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<hr />
+
+<h4>Pembobotan Kata ( Tf-IDf / Bigram)</h4>
+<br />
+
+<a class="btn btn-primary" href="{% url 'bigram' %}">Run</a>
+
+<hr />
+
+<table id="bigram" class="table table-striped table-bordered dt-responsive" style="width:100%">
+    <thead>
+        <tr>
+            <th>No.</th>
+            <th>Kata</th>
+            <th>TF</th>
+            <th>IDF</th>
+            <th>TF-IDF</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in databg %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ item.bg_kata }}</td>
+            <td>{{ item.bg_tf }}</td>
+            <td>{{ item.bg_idf }}</td>
+            <td>{% multiply item.bg_tf item.bg_idf %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br />
+
+{% endblock content%}
+
+{% block javascript %} 
+
+<script>
+    $(document).ready(function() {
+        
+        $('#bobot').DataTable({
+            "language": {
+                "emptyTable": "<i>No Data</i>"
+            },
+        })
+    });
+</script>
+<script>
+    $(document).ready(function() {
+        
+        $('#bigram').DataTable({
+            "language": {
+                "emptyTable": "<i>No Data</i>"
+            },
+        })
+    });
+</script>
+
+
+{% endblock javascript%}

@@ -1,0 +1,37 @@
+{% extends '../main/base.html' %} {% block content%}
+
+
+<h3>Prediksi Kelas (Naive Bayes Classifier)</h3>
+<br />
+
+{% for msg in messages %}
+<div class="alert alert-{{msg.level_tag}}" role="alert">
+    {{msg.message}}
+</div>
+{% endfor %}
+
+<!-- klasifikasi data  -->
+<form action="{% url 'predict' %}" method="post">
+    {% csrf_token %}
+    <div class="form-row text-left">
+        <div class="form-group col-md-12">
+            <label for="text">Masukkan Text</label>
+            {{ form.text }}
+        </div>
+
+        <div class="form-group col-md-2">
+            <button class="btn btn-outline-primary form-control" type="submit">Prediksi</button>
+        </div>
+    </div>
+</form>
+<hr />
+{%  if subname == "before"%}
+    <h3>Result Will Shown Here:</h3>
+{% else %}
+    <h5>Terklasifikasi Sebagai:</h5>
+    <h3 class="text-dark text-center">{{ result }}</h3>
+    <h5>Text:</h5>
+    <p class="text-justify">{{ text }}</p>
+{% endif %}
+
+{% endblock content%}

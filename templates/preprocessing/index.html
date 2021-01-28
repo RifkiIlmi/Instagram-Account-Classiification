@@ -1,0 +1,52 @@
+{% extends '../main/base.html' %} {% block content%}
+
+<h4>Preprocessing Data ( Cleaning, Casefolding, Tokenizing, Normalization, Filtering, Stemming )</h4>
+<br />
+
+{% for msg in messages %}
+<div class="alert alert-{{msg.level_tag}}" role="alert">
+    {{msg.message}}
+</div>
+{% endfor %}
+
+<a class="btn btn-primary" href="{% url 'process' %}">Preprocess</a>
+
+<hr />
+
+<table id="processed" class="table table-striped table-bordered dt-responsive" style="width:100%">
+    <thead>
+        <tr>
+            <th>Old Caption</th>
+            <th>New Caption</th>
+            <th>Username</th>
+            <th>Label / Kategori</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ item.link_fk.caption }}</td>
+            <td>{{ item.caption_pre }}</td>
+            <td><a href="{{ item.link_fk.link }}" target="_blank" >{{ item.link_fk.username }}</a></td>
+            <td style="max-width: 70px;" >{{ item.link_fk.label }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock content%}
+
+{% block javascript %} 
+
+<script>
+    $(document).ready(function() {
+        $('#processed').DataTable({
+            "language": {
+                "emptyTable": "<i>No Data</i>"
+            },
+        });
+    });
+</script>
+
+
+{% endblock javascript%}
